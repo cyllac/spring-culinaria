@@ -1,21 +1,19 @@
 package br.com.cyllac.config;
 
+import java.util.Properties;
+
 import javax.persistence.EntityManagerFactory;
 import javax.sql.DataSource;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
-import org.springframework.jdbc.datasource.init.DatabasePopulatorUtils;
-import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.vendor.HibernateJpaDialect;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
-import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 @Configuration
@@ -27,43 +25,38 @@ public class DatabaseConfig {
 	@Bean
 	public DataSource dataSource() {
 		DriverManagerDataSource dataSource = new DriverManagerDataSource();
-		dataSource.setDriverClassName("org.hsqldb.jdbcDriver");
-		dataSource.setUrl("jdbc:hsqldb:file:D:\\PROJETOS SPRING\\eclipse-workspace\\culinaria\\db\\culinaria-db");		
-		dataSource.setUsername("sa");
-		dataSource.setPassword("");
-		
-		createDatabasePopulator(dataSource);
+		dataSource.setDriverClassName("com.mysql.cj.jdbc.Driver");
+		dataSource.setUrl("jdbc:mysql://localhost:3306/culinaria-db");
+		dataSource.setUsername("root");
+		dataSource.setPassword("root");
 		
 		return dataSource;
 	}
 
 	@Bean
 	public EntityManagerFactory entityManagerFactory() {
-		HibernateJpaVendorAdapter vendorAdapter = new HibernateJpaVendorAdapter();
-		vendorAdapter.setGenerateDdl(true);
-
 		LocalContainerEntityManagerFactoryBean factory = new LocalContainerEntityManagerFactoryBean();
-		factory.setJpaVendorAdapter(vendorAdapter);
+		factory.setDataSource(dataSource());		 
 		factory.setPackagesToScan("br.com.cyllac.entity");
-		factory.setDataSource(dataSource());
-		factory.setJpaDialect(new HibernateJpaDialect()); 
+		factory.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
+		factory.setJpaProperties(jpaProperties());
 		factory.afterPropertiesSet();		
 		return factory.getObject();
 	}
 
 	@Bean
-	public PlatformTransactionManager transactionManager() {
+	public JpaTransactionManager transactionManager() {
 		JpaTransactionManager txManager = new JpaTransactionManager();
 		txManager.setEntityManagerFactory(entityManagerFactory());
+		txManager.setJpaDialect(new HibernateJpaDialect());
 		return txManager;
-	}
-	
+	}	
 
-	public void createDatabasePopulator(DataSource dataSource) {
-        ResourceDatabasePopulator databasePopulator = new ResourceDatabasePopulator();
-        databasePopulator.setContinueOnError(true);
-        databasePopulator.addScript(new ClassPathResource("data.sql"));
-        
-        DatabasePopulatorUtils.execute(databasePopulator, dataSource);
+    private Properties jpaProperties() {
+        Properties props = new Properties();
+        props.setProperty("hibernate.show_sql", "false");
+        props.setProperty("hibernate.format_sql", "false");
+        props.setProperty("hibernate.hbm2ddl.auto", "update");
+        return props;
     }
 }
